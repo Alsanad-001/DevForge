@@ -18,8 +18,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Code Craft",
-  description: "Share and run code snippets",
+  title: "DevForge",
+  description: "Interactive Code Editor",
 };
 
 export default function RootLayout({
