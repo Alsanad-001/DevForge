@@ -27,7 +27,8 @@ function LanguageSelector({ hasAccess }: { hasAccess: boolean }) {
   }, []);
 
   const handleLanguageSelect = (langId: string) => {
-    if (!hasAccess && langId !== "javascript") return;
+    // PAYWALL BYPASS: Commented out the check that forces non-Pro users to stay on JavaScript
+    // if (!hasAccess && langId !== "javascript") return;
 
     setLanguage(langId);
     setIsOpen(false);
@@ -44,7 +45,8 @@ function LanguageSelector({ hasAccess }: { hasAccess: boolean }) {
         className={`group relative flex items-center gap-3 px-4 py-2.5 bg-[#1e1e2e]/80 
       rounded-lg transition-all 
        duration-200 border border-gray-800/50 hover:border-gray-700
-       ${!hasAccess && language !== "javascript" ? "opacity-50 cursor-not-allowed" : ""}`}
+       ${/* PAYWALL BYPASS: Commented out the disabled styling for the main button */ ""}
+       ${/* !hasAccess && language !== "javascript" ? "opacity-50 cursor-not-allowed" : "" */ ""}`}
       >
         {/* Decoration */}
         <div
@@ -89,7 +91,9 @@ function LanguageSelector({ hasAccess }: { hasAccess: boolean }) {
 
             <div className="max-h-[280px] overflow-y-auto overflow-x-hidden">
               {Object.values(LANGUAGE_CONFIG).map((lang, index) => {
-                const isLocked = !hasAccess && lang.id !== "javascript";
+                // PAYWALL BYPASS: Forced isLocked to false. Kept original logic commented below.
+                const isLocked = false;
+                // const isLocked = !hasAccess && lang.id !== "javascript";
 
                 return (
                   <motion.div

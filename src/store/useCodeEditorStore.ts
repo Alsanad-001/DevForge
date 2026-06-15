@@ -83,58 +83,33 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => {
       set({ isRunning: true, error: null, output: "" });
 
       try {
-        const runtime = LANGUAGE_CONFIG[language].pistonRuntime;
-        const response = await fetch("https://emkc.org/api/v2/piston/execute", {
+        const response = await fetch("/api/execute", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            language: runtime.language,
-            version: runtime.version,
-            files: [{ content: code }],
+            script: code,
+            language: language,
           }),
         });
 
         const data = await response.json();
 
-        console.log("data back from piston:", data);
+        console.log("data back from jdoodle proxy:", data);
 
-        // handle API-level erros
-        if (data.message) {
-          set({ error: data.message, executionResult: { code, output: "", error: data.message } });
-          return;
-        }
-
-        // handle compilation errors
-        if (data.compile && data.compile.code !== 0) {
-          const error = data.compile.stderr || data.compile.output;
+        // Handle error responses from JDoodle
+        if (data.error || data.statusCode === 400 || data.statusCode === 401) {
+          const errMsg = data.error || "Execution failed";
           set({
-            error,
-            executionResult: {
-              code,
-              output: "",
-              error,
-            },
+            error: errMsg,
+            executionResult: { code, output: "", error: errMsg },
           });
           return;
         }
 
-        if (data.run && data.run.code !== 0) {
-          const error = data.run.stderr || data.run.output;
-          set({
-            error,
-            executionResult: {
-              code,
-              output: "",
-              error,
-            },
-          });
-          return;
-        }
-
-        // if we get here, execution was successful
-        const output = data.run.output;
+        // JDoodle bundles standard output and runtime errors into data.output
+        const output = data.output || "";
 
         set({
           output: output.trim(),

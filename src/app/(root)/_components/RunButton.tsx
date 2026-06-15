@@ -17,13 +17,18 @@ function RunButton() {
     const result = getExecutionResult();
 
     if (user && result) {
-      await saveExecution({
+      try {
+        await saveExecution({
         language,
         code: result.code,
         output: result.output || undefined,
         error: result.error || undefined,
       });
-    }
+  } catch (dbError) {
+    console.warn("Could not save history to database:", dbError);
+    // We don't rethrow so the app keeps working smoothly!
+  }
+}
   };
 
   return (
