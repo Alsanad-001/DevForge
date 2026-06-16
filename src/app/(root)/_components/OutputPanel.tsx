@@ -1,27 +1,45 @@
 "use client";
 
 import { useCodeEditorStore } from "@/store/useCodeEditorStore";
-import { AlertTriangle, CheckCircle, Clock, Copy, Terminal } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, CheckCircle, Clock, Copy, Terminal, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
 import RunningCodeSkeleton from "./RunningCodeSkeleton";
+
+function getTimeUntilMidnightUTC() {
+  const now = new Date();
+  const midnight = new Date();
+  midnight.setUTCHours(24, 0, 0, 0);
+  const diff = midnight.getTime() - now.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  return `${hours}h ${minutes}m`;
+}
 
 function OutputPanel() {
   const { output, error, isRunning } = useCodeEditorStore();
   const [isCopied, setIsCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(getTimeUntilMidnightUTC());
 
+  const isQuotaError = error?.toLowerCase().includes("daily limit reached");
   const hasContent = error || output;
+
+  useEffect(() => {
+    if (!isQuotaError) return;
+    const interval = setInterval(() => {
+      setTimeLeft(getTimeUntilMidnightUTC());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [isQuotaError]);
 
   const handleCopy = async () => {
     if (!hasContent) return;
     await navigator.clipboard.writeText(error || output);
     setIsCopied(true);
-
     setTimeout(() => setIsCopied(false), 2000);
   };
 
   return (
     <div className="relative bg-[#181825] rounded-xl p-4 ring-1 ring-gray-800/50">
-      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-[#1e1e2e] ring-1 ring-gray-800/50">
@@ -30,11 +48,10 @@ function OutputPanel() {
           <span className="text-sm font-medium text-gray-300">Output</span>
         </div>
 
-        {hasContent && (
+        {hasContent && !isQuotaError && (
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-400 hover:text-gray-300 bg-[#1e1e2e] 
-            rounded-lg ring-1 ring-gray-800/50 hover:ring-gray-700/50 transition-all"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-gray-400 hover:text-gray-300 bg-[#1e1e2e] rounded-lg ring-1 ring-gray-800/50 hover:ring-gray-700/50 transition-all"
           >
             {isCopied ? (
               <>
@@ -51,14 +68,34 @@ function OutputPanel() {
         )}
       </div>
 
-      {/* Output Area */}
       <div className="relative">
-        <div
-          className="relative bg-[#1e1e2e]/50 backdrop-blur-sm border border-[#313244] 
-        rounded-xl p-4 h-[600px] overflow-auto font-mono text-sm"
-        >
+        <div className="relative bg-[#1e1e2e]/50 backdrop-blur-sm border border-[#313244] rounded-xl p-4 h-[600px] overflow-auto font-mono text-sm">
           {isRunning ? (
             <RunningCodeSkeleton />
+          ) : isQuotaError ? (
+            <div className="h-full flex flex-col items-center justify-center text-center px-6">
+              <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-yellow-500/10 ring-1 ring-yellow-500/20 mb-6">
+                <AlertTriangle className="w-8 h-8 text-yellow-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">⚠️ API Usage Limit Reached</h3>
+              <p className="text-gray-400 text-sm mb-6">You have used all free executions for today.</p>
+              <div className="bg-[#12121a] rounded-xl p-4 mb-6 w-full max-w-xs">
+                <p className="text-xs text-gray-500 mb-1">Remaining quota resets in:</p>
+                <p className="text-2xl font-bold text-white">{timeLeft}</p>
+              </div>
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <a href="/pricing" className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity">
+                  <Zap className="w-4 h-4" />
+                  Upgrade Plan
+                </a>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2.5 bg-[#1e1e2e] rounded-lg text-gray-400 text-sm font-medium hover:text-white transition-colors ring-1 ring-gray-800/50"
+                >
+                  Try Again Tomorrow
+                </button>
+              </div>
+            </div>
           ) : error ? (
             <div className="flex items-start gap-3 text-red-400">
               <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-1" />

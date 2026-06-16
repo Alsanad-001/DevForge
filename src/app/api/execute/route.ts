@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 // 1. This GET handler allows you to test the URL directly in your browser address bar!
 export async function GET() {
-  return NextResponse.json({ 
-    status: "online", 
-    message: "JDoodle execution proxy route is working perfectly. Use a POST request to run code." 
+  return NextResponse.json({
+    status: "online",
+    message: "JDoodle execution proxy route is working perfectly. Use a POST request to run code."
   });
 }
 
@@ -15,14 +15,18 @@ export async function POST(req: Request) {
 
     const languageMap: Record<string, { lang: string; version: string }> = {
       javascript: { lang: "nodejs", version: "4" },
+      typescript: { lang: "typescript", version: "4" },
       python: { lang: "python3", version: "4" },
       java: { lang: "java", version: "4" },
       c: { lang: "c", version: "5" },
       cpp: { lang: "cpp", version: "5" },
       go: { lang: "go", version: "4" },
+      rust: { lang: "rust", version: "4" },
+      ruby: { lang: "ruby", version: "3" },
+      swift: { lang: "swift", version: "4" },
     };
 
-    const mapped = languageMap[language] || { lang: "nodejs", version: "4" };
+    const mapped = languageMap[language] || { lang: language, version: "0" };
 
     const response = await fetch("https://api.jdoodle.com/v1/execute", {
       method: "POST",
