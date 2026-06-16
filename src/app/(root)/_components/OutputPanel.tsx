@@ -5,11 +5,12 @@ import { AlertTriangle, CheckCircle, Clock, Copy, Terminal, Zap } from "lucide-r
 import { useState, useEffect } from "react";
 import RunningCodeSkeleton from "./RunningCodeSkeleton";
 
-function getTimeUntilMidnightUTC() {
+function getTimeUntilResetPT() {
   const now = new Date();
-  const midnight = new Date();
-  midnight.setUTCHours(24, 0, 0, 0);
-  const diff = midnight.getTime() - now.getTime();
+  const reset = new Date();
+  reset.setUTCHours(8, 0, 0, 0); // midnight PT = 08:00 UTC
+  if (now >= reset) reset.setUTCDate(reset.getUTCDate() + 1);
+  const diff = reset.getTime() - now.getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
   return `${hours}h ${minutes}m`;
@@ -18,7 +19,7 @@ function getTimeUntilMidnightUTC() {
 function OutputPanel() {
   const { output, error, isRunning } = useCodeEditorStore();
   const [isCopied, setIsCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(getTimeUntilMidnightUTC());
+  const [timeLeft, setTimeLeft] = useState(getTimeUntilResetPT());
 
   const isQuotaError = error?.toLowerCase().includes("daily limit reached");
   const hasContent = error || output;
@@ -26,7 +27,7 @@ function OutputPanel() {
   useEffect(() => {
     if (!isQuotaError) return;
     const interval = setInterval(() => {
-      setTimeLeft(getTimeUntilMidnightUTC());
+      setTimeLeft(getTimeUntilResetPT());
     }, 60000);
     return () => clearInterval(interval);
   }, [isQuotaError]);
