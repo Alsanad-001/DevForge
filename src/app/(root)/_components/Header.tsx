@@ -92,9 +92,8 @@ async function Header() {
             </Link>
           )}
 
-          <SignedIn>
-            <RunButton />
-          </SignedIn>
+          {/* Run Button is now visible to everyone */}
+          <RunButton />
 
           <div className="pl-3 border-l border-gray-800">
             <HeaderProfileBtn />

@@ -13,7 +13,7 @@ const ACTIONS = [
 function getTimeUntilResetPT() {
   const now = new Date();
   const reset = new Date();
-  reset.setUTCHours(8, 0, 0, 0); // midnight PT = 08:00 UTC
+  reset.setUTCHours(8, 0, 0, 0);
   if (now >= reset) reset.setUTCDate(reset.getUTCDate() + 1);
   const diff = reset.getTime() - now.getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -24,6 +24,7 @@ function getTimeUntilResetPT() {
 function AIHelpPanel({ onClose }: { onClose: () => void }) {
   const { language, getCode } = useCodeEditorStore();
   const [result, setResult] = useState("");
+  const [error, setError] = useState<string | null>(null); // NEW: Dedicated error state
   const [isLoading, setIsLoading] = useState(false);
   const [activeAction, setActiveAction] = useState("");
   const [timeLeft, setTimeLeft] = useState(getTimeUntilResetPT());
@@ -33,7 +34,23 @@ function AIHelpPanel({ onClose }: { onClose: () => void }) {
     return () => clearInterval(interval);
   }, []);
 
-  const isQuotaError = result === "No response" || result?.toLowerCase().includes("quota") || result?.toLowerCase().includes("exhausted");
+  // ONLY check the error string for keywords, not the successful result
+  const errorMessage = error?.toLowerCase() || "";
+
+  const isQuotaError =
+    errorMessage.includes("quota") ||
+    errorMessage.includes("rate") ||
+    errorMessage.includes("exhausted");
+
+  const isModelError =
+    errorMessage.includes("not found") ||
+    errorMessage.includes("404") ||
+    errorMessage.includes("model");
+
+  const isServiceError =
+    errorMessage.includes("unavailable") ||
+    errorMessage.includes("503");
+
   const handleAction = async (action: string) => {
     const code = getCode();
     if (!code) return;
@@ -41,6 +58,7 @@ function AIHelpPanel({ onClose }: { onClose: () => void }) {
     setIsLoading(true);
     setActiveAction(action);
     setResult("");
+    setError(null); // Clear previous errors
 
     try {
       const response = await fetch("/api/ai-help", {
@@ -50,9 +68,17 @@ function AIHelpPanel({ onClose }: { onClose: () => void }) {
       });
 
       const data = await response.json();
-      setResult(data.result || data.error);
-    } catch (error) {
-      setResult("Failed to get AI response. Please try again.");
+      
+      if (data.success) {
+        setResult(data.result);
+        setError(null);
+      } else {
+        setResult("");
+        setError(data.error || "Unknown error");
+      }
+    } catch (err) {
+      setResult("");
+      setError("Failed to get AI response. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -96,14 +122,25 @@ function AIHelpPanel({ onClose }: { onClose: () => void }) {
         ))}
       </div>
 
-      {/* Result */}
-      {isQuotaError ? (
+      {/* Result Area */}
+      {error ? (
         <div className="bg-[#12121a] rounded-lg p-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <AlertTriangle className="size-4 text-yellow-400" />
-            <p className="text-xs text-yellow-400 font-medium">AI quota limit reached</p>
+            <p className="text-xs text-yellow-400 font-medium">
+              {isQuotaError
+                ? "AI quota limit reached"
+                : isModelError
+                  ? "AI model unavailable"
+                  : isServiceError
+                    ? "AI service temporarily unavailable"
+                    : "AI request failed"}
+            </p>
           </div>
-          <p className="text-xs text-gray-500">Resets in: <span className="text-white font-medium">{timeLeft}</span></p>
+          <p className="text-xs text-gray-500 mb-2">{error}</p>
+          {isQuotaError && (
+             <p className="text-xs text-gray-500">Resets in: <span className="text-white font-medium">{timeLeft}</span></p>
+          )}
         </div>
       ) : result ? (
         <div className="bg-[#12121a] rounded-lg p-4 text-sm text-gray-300 whitespace-pre-wrap max-h-64 overflow-y-auto">
@@ -117,4 +154,5 @@ function AIHelpPanel({ onClose }: { onClose: () => void }) {
     </motion.div>
   );
 }
+
 export default AIHelpPanel;
